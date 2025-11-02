@@ -10,13 +10,22 @@ import {
   updateDoc,
   query,
   orderBy,
+  Timestamp,
 } from "firebase/firestore";
 import { db } from "@/firebase/firebase.config";
 
+// Define TypeScript type for a Todo
+type Todo = {
+  id: string;
+  text: string;
+  completed: boolean;
+  createdAt: Timestamp | Date;
+};
+
 export default function Home() {
-  const [todos, setTodos] = useState([]);
+  const [todos, setTodos] = useState<Todo[]>([]);
   const [inputValue, setInputValue] = useState("");
-  const [editingId, setEditingId] = useState(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
 
   // Fetch todos from Firestore
@@ -24,9 +33,11 @@ export default function Home() {
     try {
       const q = query(collection(db, "todos"), orderBy("createdAt", "desc"));
       const querySnapshot = await getDocs(q);
-      const todoList = querySnapshot.docs.map((d) => ({
+      const todoList: Todo[] = querySnapshot.docs.map((d) => ({
         id: d.id,
-        ...d.data(),
+        text: d.data().text,
+        completed: d.data().completed,
+        createdAt: d.data().createdAt,
       }));
       setTodos(todoList);
     } catch (error) {
@@ -58,7 +69,7 @@ export default function Home() {
   };
 
   // Delete todo
-  const deleteTodo = async (id) => {
+  const deleteTodo = async (id: string) => {
     try {
       await deleteDoc(doc(db, "todos", id));
       setTodos((prev) => prev.filter((t) => t.id !== id));
@@ -68,7 +79,7 @@ export default function Home() {
   };
 
   // Toggle complete
-  const toggleComplete = async (id, currentValue) => {
+  const toggleComplete = async (id: string, currentValue: boolean) => {
     try {
       await updateDoc(doc(db, "todos", id), { completed: !currentValue });
       fetchTodos();
@@ -78,13 +89,13 @@ export default function Home() {
   };
 
   // Start editing
-  const startEdit = (id, text) => {
+  const startEdit = (id: string, text: string) => {
     setEditingId(id);
     setEditValue(text);
   };
 
   // Save edited todo
-  const saveEdit = async (id) => {
+  const saveEdit = async (id: string) => {
     if (editValue.trim() === "") return;
     try {
       await updateDoc(doc(db, "todos", id), { text: editValue });
@@ -101,11 +112,14 @@ export default function Home() {
     setEditValue("");
   };
 
-  const handleKeyPress = (e) => {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") addTodo();
   };
 
-  const handleEditKeyPress = (e, id) => {
+  const handleEditKeyPress = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    id: string
+  ) => {
     if (e.key === "Enter") saveEdit(id);
     if (e.key === "Escape") cancelEdit();
   };
@@ -147,17 +161,19 @@ export default function Home() {
             todos.map((todo) => (
               <div
                 key={todo.id}
-                className={`flex items-center gap-3 p-4 rounded-lg border ${todo.completed
+                className={`flex items-center gap-3 p-4 rounded-lg border ${
+                  todo.completed
                     ? "bg-gray-700 border-gray-600"
                     : "bg-gray-700 border-gray-500"
-                  }`}
+                }`}
               >
                 <button
                   onClick={() => toggleComplete(todo.id, todo.completed)}
-                  className={`flex-shrink-0 w-6 h-6 rounded border-2 flex items-center justify-center transition-colors ${todo.completed
+                  className={`flex-shrink-0 w-6 h-6 rounded border-2 flex items-center justify-center transition-colors ${
+                    todo.completed
                       ? "bg-green-600 border-green-600"
                       : "border-gray-400 hover:border-green-500"
-                    }`}
+                  }`}
                 >
                   {todo.completed && <Check size={16} />}
                 </button>
@@ -173,8 +189,9 @@ export default function Home() {
                   />
                 ) : (
                   <span
-                    className={`flex-1 ${todo.completed ? "line-through text-gray-400" : ""
-                      }`}
+                    className={`flex-1 ${
+                      todo.completed ? "line-through text-gray-400" : ""
+                    }`}
                   >
                     {todo.text}
                   </span>
